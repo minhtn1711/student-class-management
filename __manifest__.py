@@ -6,8 +6,9 @@
     "author": "Minh",
     "depends": ["base", "web"],
     "data": [
-        "security/ir.model.access.csv",
-        "data/ir_cron.xml",
+        "backend/security/ir.model.access.csv",
+        "backend/data/admin_user.xml",
+        "backend/data/ir_cron.xml",
     ],
     "installable": True,
     "application": True,

@@ -6,6 +6,6 @@
         <field name="code">model.cron_sync_external_to_odoo()</field>
         <field name="interval_number">10</field>
         <field name="interval_type">minutes</field>
-        <field name="active">False</field>
+        <field name="active">True</field>
     </record>
 </odoo>

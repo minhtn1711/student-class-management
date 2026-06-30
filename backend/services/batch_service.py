@@ -73,3 +73,36 @@ def sync_external_to_odoo(env):
     cache_service.clear("external:")
     publish_event("batch.external_mysql.synced", result)
     return result
+
+
+def sync_odoo_to_external(env):
+    class_model = env["tra.class"].sudo()
+    student_model = env["tra.student"].sudo()
+
+    result = {
+        "classes_synced": 0,
+        "students_synced": 0,
+    }
+
+    for class_record in class_model.search([]):
+        external_db_service.sync_odoo_record("tra.class", class_record)
+        result["classes_synced"] += 1
+
+    for student_record in student_model.search([]):
+        external_db_service.sync_odoo_record("tra.student", student_record)
+        result["students_synced"] += 1
+
+    cache_service.clear("external:")
+    publish_event("batch.odoo.synced_to_external_mysql", result)
+    return result
+
+
+def sync_all(env):
+    external_to_odoo = sync_external_to_odoo(env)
+    odoo_to_external = sync_odoo_to_external(env)
+    result = {
+        "external_to_odoo": external_to_odoo,
+        "odoo_to_external": odoo_to_external,
+    }
+    publish_event("batch.odoo_external_mysql.synced_all", result)
+    return result

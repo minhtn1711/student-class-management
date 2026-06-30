@@ -1,4 +1,5 @@
 import base64
+import re
 
 
 class ApiNormalizer:
@@ -35,9 +36,19 @@ class ApiNormalizer:
         if not keyword:
             return []
 
-        domain = []
+        terms = []
         for index, field_name in enumerate(self.config["search_fields"]):
+            terms.append((field_name, "ilike", keyword))
+
+        for field_name in self.config.get("exact_search_fields", []):
+            if field_name in ("id", "hobbies") and str(keyword).isdigit():
+                terms.append((field_name, "=", int(keyword)))
+            elif field_name == "dob" and re.match(r"^\d{4}-\d{2}-\d{2}$", str(keyword)):
+                terms.append((field_name, "=", keyword))
+
+        domain = []
+        for index, term in enumerate(terms):
             if index:
                 domain.insert(0, "|")
-            domain.append((field_name, "ilike", keyword))
+            domain.append(term)
         return domain

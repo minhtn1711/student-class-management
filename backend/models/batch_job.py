@@ -8,4 +8,4 @@ class TraBatchJob(models.AbstractModel):
     _description = "Student Class Batch Job"
 
     def cron_sync_external_to_odoo(self):
-        batch_service.sync_external_to_odoo(self.env)
+        batch_service.sync_all(self.env)

@@ -1,7 +1,6 @@
 services:
   student_external_mysql:
     image: mysql:8.0
-    container_name: student_external_mysql
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: student_external_db
@@ -16,7 +15,6 @@ services:
 
   student_rabbitmq:
     image: rabbitmq:3-management
-    container_name: student_rabbitmq
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: student_user

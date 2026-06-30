@@ -28,6 +28,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def get_all(self, resource, **params):
         config = self._config(resource)
@@ -45,6 +46,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def get_by_page(self, resource, **params):
         config = self._config(resource)
@@ -69,6 +71,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def get_by_id(self, resource, record_id=None, **params):
         config = self._config(resource)
@@ -96,6 +99,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["POST"],
         csrf=False,
+        cors="*",
     )
     def create(self, resource, **params):
         config = self._config(resource)
@@ -113,6 +117,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["PUT", "POST"],
         csrf=False,
+        cors="*",
     )
     def update(self, resource, record_id, **params):
         config = self._config(resource)
@@ -132,6 +137,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["POST"],
         csrf=False,
+        cors="*",
     )
     def copy(self, resource, record_id, **params):
         config = self._config(resource)
@@ -151,6 +157,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["DELETE", "POST"],
         csrf=False,
+        cors="*",
     )
     def delete(self, resource, record_id=None, **params):
         config = self._config(resource)
@@ -173,6 +180,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def template_import(self, resource, **params):
         config = self._config(resource)
@@ -196,6 +204,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["POST"],
         csrf=False,
+        cors="*",
     )
     def import_file(self, resource, **params):
         config = self._config(resource)
@@ -217,6 +226,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def export(self, resource, **params):
         config = self._config(resource)
@@ -247,6 +257,7 @@ class StudentClassApiController(http.Controller):
         auth="public",
         methods=["GET"],
         csrf=False,
+        cors="*",
     )
     def export_pdf(self, resource, **params):
         config = self._config(resource)

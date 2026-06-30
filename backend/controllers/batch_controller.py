@@ -21,6 +21,34 @@ class BatchController(http.Controller):
             return fail(str(exc))
 
     @http.route(
+        "/api/batch/sync_odoo",
+        type="http",
+        auth="public",
+        methods=["POST"],
+        csrf=False,
+        cors="*",
+    )
+    def sync_odoo(self, **params):
+        try:
+            return ok(batch_service.sync_odoo_to_external(request.env), message="Synced")
+        except Exception as exc:
+            return fail(str(exc))
+
+    @http.route(
+        "/api/batch/sync_all",
+        type="http",
+        auth="public",
+        methods=["POST"],
+        csrf=False,
+        cors="*",
+    )
+    def sync_all(self, **params):
+        try:
+            return ok(batch_service.sync_all(request.env), message="Synced")
+        except Exception as exc:
+            return fail(str(exc))
+
+    @http.route(
         "/api/cache/clear",
         type="http",
         auth="public",

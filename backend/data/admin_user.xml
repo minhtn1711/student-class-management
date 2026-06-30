@@ -1,0 +1,10 @@
+<odoo>
+    <data noupdate="1">
+        <record id="admin_user_default" model="tra.admin.user">
+            <field name="name">System Admin</field>
+            <field name="email">admin@example.com</field>
+            <field name="password_hash">17ef7461b9c4ce4c2383bd3cff7fb211ed7f1b798c9fc7203cd76bdee7588bab</field>
+            <field name="active">True</field>
+        </record>
+    </data>
+</odoo>

@@ -43,7 +43,20 @@ STUDENT_SHORT_FIELDS = {
     "des": "description",
     "att": "attachment_filename",
 }
-STUDENT_SEARCH_FIELDS = ["fullname", "description", "email"]
+STUDENT_SEARCH_FIELDS = [
+    "code",
+    "fullname",
+    "homecity",
+    "address",
+    "hair_color",
+    "email",
+    "facebook",
+    "class_id.code",
+    "class_id.name",
+    "username",
+    "description",
+    "attachment_filename",
+]
 
 
 RESOURCE_CONFIGS = {
@@ -52,35 +65,41 @@ RESOURCE_CONFIGS = {
         "fields": CLASS_FIELDS,
         "short_fields": CLASS_SHORT_FIELDS,
         "search_fields": CLASS_SEARCH_FIELDS,
+        "exact_search_fields": ["id"],
     },
     "classes": {
         "model": "tra.class",
         "fields": CLASS_FIELDS,
         "short_fields": CLASS_SHORT_FIELDS,
         "search_fields": CLASS_SEARCH_FIELDS,
+        "exact_search_fields": ["id"],
     },
     "tra_class": {
         "model": "tra.class",
         "fields": CLASS_FIELDS,
         "short_fields": CLASS_SHORT_FIELDS,
         "search_fields": CLASS_SEARCH_FIELDS,
+        "exact_search_fields": ["id"],
     },
     "student": {
         "model": "tra.student",
         "fields": STUDENT_FIELDS,
         "short_fields": STUDENT_SHORT_FIELDS,
         "search_fields": STUDENT_SEARCH_FIELDS,
+        "exact_search_fields": ["id", "dob", "hobbies"],
     },
     "students": {
         "model": "tra.student",
         "fields": STUDENT_FIELDS,
         "short_fields": STUDENT_SHORT_FIELDS,
         "search_fields": STUDENT_SEARCH_FIELDS,
+        "exact_search_fields": ["id", "dob", "hobbies"],
     },
     "tra_student": {
         "model": "tra.student",
         "fields": STUDENT_FIELDS,
         "short_fields": STUDENT_SHORT_FIELDS,
         "search_fields": STUDENT_SEARCH_FIELDS,
+        "exact_search_fields": ["id", "dob", "hobbies"],
     },
 }
