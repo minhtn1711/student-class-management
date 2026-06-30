@@ -7,6 +7,7 @@
     "depends": ["base", "web"],
     "data": [
         "security/ir.model.access.csv",
+        "data/ir_cron.xml",
     ],
     "installable": True,
     "application": True,

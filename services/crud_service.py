@@ -6,6 +6,9 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 from ..utils.normalizer import ApiNormalizer
 from ..utils.pdf_exporter import build_pdf
 from ..utils.serializer import ApiSerializer
+from . import cache_service
+from . import external_db_service
+from .message_service import publish_event
 
 
 def get_model(env, config):
@@ -49,16 +52,25 @@ def get_by_id(env, config, record_id, column_list=None):
 def create_record(env, config, values):
     values = ApiNormalizer(config).payload(values)
     record = get_model(env, config).create(values)
-    return ApiSerializer(config["fields"]).record(record)
+    external_db_service.sync_odoo_record(config["model"], record)
+    cache_service.clear("external:")
+    data = ApiSerializer(config["fields"]).record(record)
+    publish_event(f"{config['model']}.created", data)
+    return data
 
 
 def update_record(env, config, record_id, values):
     record = get_model(env, config).browse(int(record_id)).exists()
     if not record:
         return None
+    old_code = record.code if "code" in config["fields"] else None
     values = ApiNormalizer(config).payload(values)
     record.write(values)
-    return ApiSerializer(config["fields"]).record(record)
+    external_db_service.sync_odoo_record(config["model"], record, old_code=old_code)
+    cache_service.clear("external:")
+    data = ApiSerializer(config["fields"]).record(record)
+    publish_event(f"{config['model']}.updated", data)
+    return data
 
 
 def copy_record(env, config, record_id, default=None):
@@ -75,7 +87,11 @@ def copy_record(env, config, record_id, default=None):
             elif value:
                 default[unique_field] = f"{value}-copy"
     new_record = record.copy(default)
-    return ApiSerializer(config["fields"]).record(new_record)
+    external_db_service.sync_odoo_record(config["model"], new_record)
+    cache_service.clear("external:")
+    data = ApiSerializer(config["fields"]).record(new_record)
+    publish_event(f"{config['model']}.copied", data)
+    return data
 
 
 def delete_record(env, config, record_id=None, ids=None):
@@ -84,7 +100,11 @@ def delete_record(env, config, record_id=None, ids=None):
     if not record:
         return False
     deleted_count = len(record)
+    deleted_ids = record.ids
+    external_db_service.delete_odoo_records(config["model"], record)
+    cache_service.clear("external:")
     record.unlink()
+    publish_event(f"{config['model']}.deleted", {"ids": deleted_ids, "deleted": deleted_count})
     return deleted_count
 
 
@@ -130,7 +150,10 @@ def import_records(env, config, file_content):
         }
         if values:
             values = ApiNormalizer(config).payload(values)
-            model.create(values)
+            record = model.create(values)
+            external_db_service.sync_odoo_record(config["model"], record)
+            cache_service.clear("external:")
+            publish_event(f"{config['model']}.imported", ApiSerializer(config["fields"]).record(record))
             created += 1
 
     return {"created": created}

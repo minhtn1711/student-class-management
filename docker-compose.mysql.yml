@@ -1,0 +1,32 @@
+services:
+  student_external_mysql:
+    image: mysql:8.0
+    container_name: student_external_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: student_external_db
+      MYSQL_USER: student_user
+      MYSQL_PASSWORD: student_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - student_external_mysql_data:/var/lib/mysql
+      - ./external_db:/docker-entrypoint-initdb.d:ro
+
+  student_rabbitmq:
+    image: rabbitmq:3-management
+    container_name: student_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: student_user
+      RABBITMQ_DEFAULT_PASS: student_password
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - student_rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  student_external_mysql_data:
+  student_rabbitmq_data:

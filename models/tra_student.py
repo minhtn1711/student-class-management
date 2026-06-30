@@ -5,7 +5,7 @@ from odoo.exceptions import ValidationError
 
 
 EMAIL_PATTERN = r"^[0-9a-zA-Z._-]+@[0-9a-zA-Z._-]+$"
-FACEBOOK_PATTERN = r"^https?://[0-9a-zA-Z._-]+$"
+FACEBOOK_PATTERN = r"^https?://[0-9a-zA-Z._/-]+$"
 PASSWORD_PATTERN = r"^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,}$"
 
 

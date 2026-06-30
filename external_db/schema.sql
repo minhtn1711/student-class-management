@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS external_classes (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS external_students (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    fullname VARCHAR(30) NOT NULL,
+    dob DATE NOT NULL DEFAULT '2000-02-04',
+    sex BOOLEAN,
+    homecity VARCHAR(100),
+    address VARCHAR(100),
+    hobbies INT,
+    hair_color VARCHAR(7),
+    email VARCHAR(256) NOT NULL UNIQUE,
+    facebook VARCHAR(256),
+    class_id BIGINT NOT NULL,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(256) NOT NULL,
+    description TEXT,
+    attachment_filename VARCHAR(255),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT external_students_class_id_fk
+        FOREIGN KEY (class_id) REFERENCES external_classes (id)
+        ON DELETE RESTRICT
+);
