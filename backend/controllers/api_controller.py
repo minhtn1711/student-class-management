@@ -132,19 +132,25 @@ class StudentClassApiController(http.Controller):
             return fail(crud_service.readable_error(exc))
 
     @http.route(
-        "/api/<string:resource>/copy/<int:record_id>",
+        ["/api/<string:resource>/copy", "/api/<string:resource>/copy/<int:record_id>"],
         type="http",
         auth="public",
         methods=["POST"],
         csrf=False,
         cors="*",
     )
-    def copy(self, resource, record_id, **params):
+    def copy(self, resource, record_id=None, **params):
         config = self._config(resource)
         if not config:
             return fail("Resource khong hop le.", status=404)
         try:
-            data = crud_service.copy_record(request.env, config, record_id, self._payload())
+            payload = self._payload()
+            raw_ids = params.get("idlist") or payload.get("idlist")
+            if raw_ids:
+                ids = ApiNormalizer(config).ids(raw_ids)
+                data = crud_service.copy_records(request.env, config, ids)
+            else:
+                data = crud_service.copy_record(request.env, config, record_id, payload)
             if not data:
                 return fail("Khong tim thay ban ghi.", status=404)
             return ok(data, message="Copied", status=201)

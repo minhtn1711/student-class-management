@@ -22,7 +22,7 @@ class TraStudent(models.Model):
     sex = fields.Boolean(string="Gioi tinh")
     homecity = fields.Char(string="Que quan", size=100)
     address = fields.Char(string="Dia chi", size=100)
-    hobbies = fields.Integer(string="So thich")
+    hobbies = fields.Char(string="So thich", size=255)
     hair_color = fields.Char(string="Mau toc", size=7)
     email = fields.Char(string="Hom thu", required=True, size=256)
     facebook = fields.Char(string="Facebook", size=256)

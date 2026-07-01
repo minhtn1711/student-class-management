@@ -28,7 +28,7 @@ INSERT INTO external_students (
 )
 VALUES
     (
-        1,
+        'Doc sach, bong da',
         'STU001',
         'Nguyen Van A',
         '2001-02-14',
@@ -46,7 +46,7 @@ VALUES
         'nguyenvana.png'
     ),
     (
-        2,
+        'Am nhac, du lich',
         'STU002',
         'Tran Thi B',
         '2002-05-20',
@@ -64,7 +64,7 @@ VALUES
         'tranthib.jpg'
     ),
     (
-        3,
+        'Lap trinh, cau long',
         'STU003',
         'Le Van C',
         '2000-11-09',

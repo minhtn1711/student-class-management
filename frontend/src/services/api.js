@@ -1,11 +1,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(path, options = {}) {
+  const isFormData = options.body instanceof FormData;
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   });
@@ -23,8 +24,9 @@ async function request(path, options = {}) {
 function queryString(params) {
   const searchParams = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      searchParams.set(key, value);
+    const normalizedValue = Array.isArray(value) ? value.join(',') : value;
+    if (normalizedValue !== undefined && normalizedValue !== null && normalizedValue !== '') {
+      searchParams.set(key, normalizedValue);
     }
   });
   const query = searchParams.toString();
@@ -65,14 +67,43 @@ export const api = {
     });
   },
 
+  copy(resource, id) {
+    return request(`/api/${resource}/copy/${id}`, {
+      method: 'POST',
+    });
+  },
+
+  copyMany(resource, ids) {
+    return request(`/api/${resource}/copy`, {
+      method: 'POST',
+      body: JSON.stringify({ idlist: ids.join(',') }),
+    });
+  },
+
   remove(resource, id) {
     return request(`/api/${resource}/delete/${id}`, {
       method: 'POST',
     });
   },
 
-  exportUrl(resource, type = 'xlsx') {
+  removeMany(resource, ids) {
+    return request(`/api/${resource}/delete`, {
+      method: 'POST',
+      body: JSON.stringify({ idlist: ids.join(',') }),
+    });
+  },
+
+  importFile(resource, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request(`/api/${resource}/import`, {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  exportUrl(resource, type = 'xlsx', params) {
     const path = type === 'pdf' ? 'export_pdf' : 'export';
-    return `${API_BASE_URL}/api/${resource}/${path}`;
+    return `${API_BASE_URL}/api/${resource}/${path}${queryString(params)}`;
   },
 };

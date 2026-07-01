@@ -41,7 +41,7 @@ class ApiNormalizer:
             terms.append((field_name, "ilike", keyword))
 
         for field_name in self.config.get("exact_search_fields", []):
-            if field_name in ("id", "hobbies") and str(keyword).isdigit():
+            if field_name == "id" and str(keyword).isdigit():
                 terms.append((field_name, "=", int(keyword)))
             elif field_name == "dob" and re.match(r"^\d{4}-\d{2}-\d{2}$", str(keyword)):
                 terms.append((field_name, "=", keyword))

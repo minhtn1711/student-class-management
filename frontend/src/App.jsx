@@ -5,12 +5,14 @@ import {
   Button,
   Card,
   AutoComplete,
+  Checkbox,
   Col,
   DatePicker,
+  Descriptions,
+  Dropdown,
   Flex,
   Form,
   Input,
-  InputNumber,
   Layout,
   Menu,
   Modal,
@@ -22,14 +24,18 @@ import {
   Statistic,
   Table,
   Tag,
+  Tooltip,
   Typography,
+  Upload,
   message,
 } from 'antd';
 import {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CopyOutlined,
   DeleteOutlined,
+  DownOutlined,
   DownloadOutlined,
   EditOutlined,
   EyeInvisibleOutlined,
@@ -43,6 +49,7 @@ import {
   ReloadOutlined,
   SearchOutlined,
   TeamOutlined,
+  UploadOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -52,11 +59,221 @@ const { Header, Sider, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+const classExportFields = [
+  { value: 'id', label: 'ID' },
+  { value: 'code', label: 'Mã lớp' },
+  { value: 'name', label: 'Tên lớp' },
+  { value: 'description', label: 'Mô tả' },
+];
+const classFilterFields = classExportFields.filter((field) => field.value !== 'id');
+
+const studentExportFields = [
+  { value: 'id', label: 'ID' },
+  { value: 'code', label: 'Mã SV' },
+  { value: 'fullname', label: 'Họ tên' },
+  { value: 'dob', label: 'Ngày sinh' },
+  { value: 'sex', label: 'Giới tính' },
+  { value: 'homecity', label: 'Quê quán' },
+  { value: 'address', label: 'Địa chỉ' },
+  { value: 'hobbies', label: 'Sở thích' },
+  { value: 'hair_color', label: 'Màu tóc' },
+  { value: 'email', label: 'Email' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'class_id', label: 'Lớp' },
+  { value: 'username', label: 'Tài khoản' },
+  { value: 'password', label: 'Mật khẩu' },
+  { value: 'description', label: 'Mô tả' },
+  { value: 'attachment_filename', label: 'Tên file ảnh' },
+];
+const studentFilterFields = studentExportFields.filter((field) => field.value !== 'id');
+
+function displayValue(value, field) {
+  if (field === 'sex') {
+    return value ? 'Nam' : 'Nữ';
+  }
+  if (field === 'password') {
+    return 'ẩn';
+  }
+  if (value && typeof value === 'object' && 'display_name' in value) {
+    return value.display_name;
+  }
+  if (value === false || value === null || value === undefined || value === '') {
+    return '-';
+  }
+  return String(value);
+}
+
+function DetailModal({ title, fields, record, onClose }) {
+  return (
+    <Modal title={title} open={Boolean(record)} footer={null} onCancel={onClose} width={760} destroyOnClose>
+      {record && (
+        <Descriptions bordered column={1} size="middle">
+          {fields.map((field) => (
+            <Descriptions.Item key={field.value} label={field.label}>
+              {field.value === 'hair_color' && record[field.value] ? (
+                <Space>
+                  <span className="color-swatch" style={{ backgroundColor: record[field.value] }} />
+                  {record[field.value]}
+                </Space>
+              ) : (
+                displayValue(record[field.value], field.value)
+              )}
+            </Descriptions.Item>
+          ))}
+        </Descriptions>
+      )}
+    </Modal>
+  );
+}
+
+function ExportFieldSelect({ fields, value, onChange }) {
+  return (
+    <Dropdown
+      trigger={['click']}
+      placement="bottomLeft"
+      dropdownRender={() => (
+        <div className="filter-dropdown-panel">
+          <Checkbox.Group value={value} onChange={onChange}>
+            <Space direction="vertical" size={10}>
+              {fields.map((field) => (
+                <Checkbox key={field.value} value={field.value}>
+                  {field.label}
+                </Checkbox>
+              ))}
+            </Space>
+          </Checkbox.Group>
+        </div>
+      )}
+    >
+      <Button className="filter-dropdown-button">
+        Lọc thông tin
+        <DownOutlined />
+      </Button>
+    </Dropdown>
+  );
+}
+
+function ImportButton({ resource, onImported }) {
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = async (file) => {
+    setImporting(true);
+    try {
+      const result = await api.importFile(resource, file);
+      message.success(`Đã import ${result?.created || 0} bản ghi`);
+      onImported();
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setImporting(false);
+    }
+    return Upload.LIST_IGNORE;
+  };
+
+  return (
+    <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
+      <Button icon={<UploadOutlined />} loading={importing}>
+        Import
+      </Button>
+    </Upload>
+  );
+}
+
 const pageTitles = {
   overview: 'Tổng quan',
   classes: 'Quản lý lớp',
   students: 'Quản lý sinh viên',
 };
+
+const adminStorageKey = 'student_admin';
+const activeMenuStorageKey = 'student_admin_active_menu';
+const classPageStateStorageKey = 'student_admin_classes_state';
+const studentPageStateStorageKey = 'student_admin_students_state';
+const defaultMenuKey = 'overview';
+const menuKeys = ['overview', 'classes', 'students'];
+
+function readStoredAdmin() {
+  try {
+    const rawAdmin = window.localStorage.getItem(adminStorageKey);
+    return rawAdmin ? JSON.parse(rawAdmin) : null;
+  } catch {
+    window.localStorage.removeItem(adminStorageKey);
+    return null;
+  }
+}
+
+function readStoredActiveMenu() {
+  const storedMenu = window.localStorage.getItem(activeMenuStorageKey);
+  return menuKeys.includes(storedMenu) ? storedMenu : defaultMenuKey;
+}
+
+function readStoredJson(key, fallback = {}) {
+  try {
+    const rawValue = window.localStorage.getItem(key);
+    return rawValue ? JSON.parse(rawValue) : fallback;
+  } catch {
+    window.localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
+function normalizeStoredFields(storedFields, fields) {
+  const allowedFields = fields.map((field) => field.value);
+  const normalizedFields = Array.isArray(storedFields)
+    ? storedFields.filter((field) => allowedFields.includes(field))
+    : [];
+  return normalizedFields.length ? normalizedFields : allowedFields;
+}
+
+function normalizeStoredPagination(storedPagination) {
+  return {
+    current: storedPagination?.current || 1,
+    pageSize: storedPagination?.pageSize || 10,
+    total: storedPagination?.total || 0,
+  };
+}
+
+function clearStoredSelectedRows(key) {
+  const pageState = readStoredJson(key);
+  window.localStorage.setItem(
+    key,
+    JSON.stringify({
+      ...pageState,
+      selectedRowKeys: [],
+    }),
+  );
+}
+
+function clearSelectedRowsOnLeave(menuKey) {
+  if (menuKey === 'classes') {
+    clearStoredSelectedRows(classPageStateStorageKey);
+  }
+  if (menuKey === 'students') {
+    clearStoredSelectedRows(studentPageStateStorageKey);
+  }
+}
+
+function restoreStudentFormValues(values) {
+  if (!values) {
+    return {};
+  }
+  return {
+    ...values,
+    dob: values.dob ? dayjs(values.dob) : undefined,
+    class_id: values.class_id?.id || values.class_id,
+  };
+}
+
+function persistStudentFormValues(values) {
+  if (!values) {
+    return null;
+  }
+  return {
+    ...values,
+    dob: values.dob?.format ? values.dob.format('YYYY-MM-DD') : values.dob,
+    class_id: values.class_id?.id || values.class_id,
+  };
+}
 
 function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
@@ -98,8 +315,7 @@ function LoginPage({ onLogin }) {
       <section className="login-visual" aria-hidden="true">
         <div>
           <Text className="login-kicker">Student Class Management</Text>
-          <Title level={1}>Quản lý lớp học và học viên trong một giao diện.</Title>
-          <Text>Theo dõi thông tin sinh viên, lớp học và dữ liệu quản trị từ backend Odoo.</Text>
+          <Title level={1}>Quản lý học viên và lớp học</Title>
         </div>
       </section>
 
@@ -241,9 +457,9 @@ function OverviewPage() {
   );
 }
 
-function ClassForm({ form, onFinish }) {
+function ClassForm({ form, onFinish, onValuesChange }) {
   return (
-    <Form form={form} layout="vertical" onFinish={onFinish}>
+    <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={onValuesChange}>
       <Form.Item
         label="Mã lớp"
         name="code"
@@ -273,13 +489,20 @@ function ClassForm({ form, onFinish }) {
 
 function ClassesPage() {
   const [form] = Form.useForm();
+  const [initialPageState] = useState(() => readStoredJson(classPageStateStorageKey));
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [keyword, setKeyword] = useState('');
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [modalOpen, setModalOpen] = useState(Boolean(initialPageState.modalOpen));
+  const [editingRecord, setEditingRecord] = useState(initialPageState.editingRecord || null);
+  const [formDraft, setFormDraft] = useState(initialPageState.formDraft || null);
+  const [detailRecord, setDetailRecord] = useState(null);
+  const [keyword, setKeyword] = useState(initialPageState.keyword || '');
+  const [pagination, setPagination] = useState(() => normalizeStoredPagination(initialPageState.pagination));
   const [rows, setRows] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState(initialPageState.selectedRowKeys || []);
+  const [exportFields, setExportFields] = useState(() => normalizeStoredFields(initialPageState.exportFields, classFilterFields));
+  const classCurrentPage = pagination.current;
+  const classPageSize = pagination.pageSize;
 
   const loadRows = useCallback(
     async (page = 1, size = 10, search = keyword) => {
@@ -298,19 +521,49 @@ function ClassesPage() {
   );
 
   useEffect(() => {
-    loadRows();
-  }, [loadRows]);
+    loadRows(classCurrentPage, classPageSize, keyword);
+  }, [classCurrentPage, classPageSize, keyword, loadRows]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      form.setFieldsValue(formDraft || editingRecord || {});
+    }
+  }, [editingRecord, form, formDraft, modalOpen]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      classPageStateStorageKey,
+      JSON.stringify({
+        keyword,
+        pagination,
+        selectedRowKeys,
+        exportFields,
+        modalOpen,
+        editingRecord,
+        formDraft,
+      }),
+    );
+  }, [editingRecord, exportFields, formDraft, keyword, modalOpen, pagination, selectedRowKeys]);
 
   const openCreate = () => {
     setEditingRecord(null);
+    setFormDraft(null);
     form.resetFields();
     setModalOpen(true);
   };
 
   const openEdit = (record) => {
     setEditingRecord(record);
+    setFormDraft(record);
     form.setFieldsValue(record);
     setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingRecord(null);
+    setFormDraft(null);
+    form.resetFields();
   };
 
   const handleSave = async () => {
@@ -323,7 +576,7 @@ function ClassesPage() {
         await api.create('class', values);
       }
       message.success('Đã lưu lớp');
-      setModalOpen(false);
+      closeModal();
       loadRows();
     } catch (error) {
       message.error(error.message);
@@ -342,6 +595,49 @@ function ClassesPage() {
     }
   };
 
+  const handleCopy = async (id) => {
+    try {
+      await api.copy('class', id);
+      message.success('Đã sao chép lớp');
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleBulkCopy = async () => {
+    try {
+      const copied = await api.copyMany('class', selectedRowKeys);
+      message.success(`Đã sao chép ${copied?.length || selectedRowKeys.length} lớp`);
+      setSelectedRowKeys([]);
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await api.removeMany('class', selectedRowKeys);
+      message.success(`Đã xoá ${selectedRowKeys.length} lớp`);
+      setSelectedRowKeys([]);
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const exportParams = {
+    columnlist: ['id', ...exportFields],
+    idlist: selectedRowKeys,
+  };
+  const classIdColumn = { title: 'ID', dataIndex: 'id', width: 80, sorter: (a, b) => a.id - b.id };
+  const visibleClassColumns = [
+    { title: 'Mã lớp', dataIndex: 'code', width: 160 },
+    { title: 'Tên lớp', dataIndex: 'name', width: 240 },
+    { title: 'Mô tả', dataIndex: 'description' },
+  ].filter((column) => exportFields.includes(column.dataIndex));
+
   return (
     <Space direction="vertical" size={16} className="full-width">
       <Card>
@@ -356,12 +652,36 @@ function ClassesPage() {
             className="table-search"
           />
           <Space wrap>
-            <Button icon={<ReloadOutlined />} onClick={() => loadRows(pagination.current, pagination.pageSize)}>
-              Tải lại
-            </Button>
-            <Button icon={<DownloadOutlined />} href={api.exportUrl('class')}>
+            <ExportFieldSelect fields={classFilterFields} value={exportFields} onChange={setExportFields} />
+            <ImportButton resource="class" onImported={() => loadRows(1, pagination.pageSize, keyword)} />
+            <Button icon={<DownloadOutlined />} href={api.exportUrl('class', 'xlsx', exportParams)} disabled={!exportFields.length}>
               Excel
             </Button>
+            <Button icon={<DownloadOutlined />} href={api.exportUrl('class', 'pdf', exportParams)} disabled={!exportFields.length}>
+              PDF
+            </Button>
+            <Popconfirm
+              title={`Sao chép ${selectedRowKeys.length} lớp đã chọn?`}
+              okText="Sao chép"
+              cancelText="Huỷ"
+              disabled={!selectedRowKeys.length}
+              onConfirm={handleBulkCopy}
+            >
+              <Button icon={<CopyOutlined />} disabled={!selectedRowKeys.length}>
+                Sao chép chọn
+              </Button>
+            </Popconfirm>
+            <Popconfirm
+              title={`Xoá ${selectedRowKeys.length} lớp đã chọn?`}
+              okText="Xoá"
+              cancelText="Huỷ"
+              disabled={!selectedRowKeys.length}
+              onConfirm={handleBulkDelete}
+            >
+              <Button danger icon={<DeleteOutlined />} disabled={!selectedRowKeys.length}>
+                Xoá chọn
+              </Button>
+            </Popconfirm>
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
               Thêm lớp
             </Button>
@@ -376,21 +696,36 @@ function ClassesPage() {
           dataSource={rows}
           scroll={{ x: 900 }}
           pagination={pagination}
+          rowSelection={{
+            selectedRowKeys,
+            preserveSelectedRowKeys: true,
+            onChange: setSelectedRowKeys,
+          }}
           onChange={(nextPagination) => loadRows(nextPagination.current, nextPagination.pageSize)}
           columns={[
-            { title: 'ID', dataIndex: 'id', width: 80, sorter: (a, b) => a.id - b.id },
-            { title: 'Mã lớp', dataIndex: 'code', width: 160 },
-            { title: 'Tên lớp', dataIndex: 'name', width: 240 },
-            { title: 'Mô tả', dataIndex: 'description' },
+            classIdColumn,
+            ...visibleClassColumns,
             {
               title: 'Thao tác',
               fixed: 'right',
-              width: 150,
+              width: 240,
               render: (_, record) => (
                 <Space>
-                  <Button icon={<EditOutlined />} onClick={() => openEdit(record)} />
+                  <Tooltip title="Xem chi tiết">
+                    <Button icon={<EyeOutlined />} onClick={() => setDetailRecord(record)} />
+                  </Tooltip>
+                  <Popconfirm title="Sao chép lớp này?" okText="Sao chép" cancelText="Huỷ" onConfirm={() => handleCopy(record.id)}>
+                    <Tooltip title="Sao chép">
+                      <Button icon={<CopyOutlined />} />
+                    </Tooltip>
+                  </Popconfirm>
+                  <Tooltip title="Sửa">
+                    <Button icon={<EditOutlined />} onClick={() => openEdit(record)} />
+                  </Tooltip>
                   <Popconfirm title="Xoá lớp này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => handleDelete(record.id)}>
-                    <Button danger icon={<DeleteOutlined />} />
+                    <Tooltip title="Xoá">
+                      <Button danger icon={<DeleteOutlined />} />
+                    </Tooltip>
                   </Popconfirm>
                 </Space>
               ),
@@ -406,18 +741,25 @@ function ClassesPage() {
         cancelText="Huỷ"
         confirmLoading={saving}
         onOk={handleSave}
-        onCancel={() => setModalOpen(false)}
+        onCancel={closeModal}
         destroyOnClose
       >
-        <ClassForm form={form} onFinish={handleSave} />
+        <ClassForm form={form} onFinish={handleSave} onValuesChange={(_, values) => setFormDraft(values)} />
       </Modal>
+
+      <DetailModal
+        title="Chi tiết lớp"
+        fields={classExportFields}
+        record={detailRecord}
+        onClose={() => setDetailRecord(null)}
+      />
     </Space>
   );
 }
 
-function StudentForm({ form, onFinish, classes }) {
+function StudentForm({ form, onFinish, classes, onValuesChange }) {
   return (
-    <Form form={form} layout="vertical" onFinish={onFinish}>
+    <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={onValuesChange}>
       <Row gutter={16}>
         <Col xs={24} md={12}>
           <Form.Item
@@ -469,8 +811,8 @@ function StudentForm({ form, onFinish, classes }) {
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
-          <Form.Item label="Sở thích" name="hobbies">
-            <InputNumber min={0} className="full-width" placeholder="Nhập số" />
+          <Form.Item label="Sở thích" name="hobbies" rules={[{ max: 255, message: 'Sở thích tối đa 255 ký tự' }]}>
+            <Input placeholder="Đọc sách, bóng đá, âm nhạc" maxLength={255} />
           </Form.Item>
         </Col>
         <Col xs={24} md={12}>
@@ -554,14 +896,21 @@ function StudentForm({ form, onFinish, classes }) {
 
 function StudentsPage() {
   const [form] = Form.useForm();
+  const [initialPageState] = useState(() => readStoredJson(studentPageStateStorageKey));
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState(null);
-  const [keyword, setKeyword] = useState('');
+  const [modalOpen, setModalOpen] = useState(Boolean(initialPageState.modalOpen));
+  const [editingRecord, setEditingRecord] = useState(initialPageState.editingRecord || null);
+  const [formDraft, setFormDraft] = useState(initialPageState.formDraft || null);
+  const [detailRecord, setDetailRecord] = useState(null);
+  const [keyword, setKeyword] = useState(initialPageState.keyword || '');
   const [classes, setClasses] = useState([]);
-  const [pagination, setPagination] = useState({ current: 1, pageSize: 10, total: 0 });
+  const [pagination, setPagination] = useState(() => normalizeStoredPagination(initialPageState.pagination));
   const [rows, setRows] = useState([]);
+  const [selectedRowKeys, setSelectedRowKeys] = useState(initialPageState.selectedRowKeys || []);
+  const [exportFields, setExportFields] = useState(() => normalizeStoredFields(initialPageState.exportFields, studentFilterFields));
+  const studentCurrentPage = pagination.current;
+  const studentPageSize = pagination.pageSize;
 
   const loadClasses = useCallback(async () => {
     try {
@@ -589,24 +938,56 @@ function StudentsPage() {
 
   useEffect(() => {
     loadClasses();
-    loadRows();
-  }, [loadClasses, loadRows]);
+    loadRows(studentCurrentPage, studentPageSize, keyword);
+  }, [keyword, loadClasses, loadRows, studentCurrentPage, studentPageSize]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      form.setFieldsValue(restoreStudentFormValues(formDraft || editingRecord));
+    }
+  }, [editingRecord, form, formDraft, modalOpen]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      studentPageStateStorageKey,
+      JSON.stringify({
+        keyword,
+        pagination,
+        selectedRowKeys,
+        exportFields,
+        modalOpen,
+        editingRecord,
+        formDraft,
+      }),
+    );
+  }, [editingRecord, exportFields, formDraft, keyword, modalOpen, pagination, selectedRowKeys]);
 
   const openCreate = () => {
+    const defaults = { sex: true, hair_color: '#000000', password: 'Password@123' };
     setEditingRecord(null);
+    setFormDraft(defaults);
     form.resetFields();
-    form.setFieldsValue({ sex: true, hair_color: '#000000', password: 'Password@123' });
+    form.setFieldsValue(defaults);
     setModalOpen(true);
   };
 
   const openEdit = (record) => {
-    setEditingRecord(record);
-    form.setFieldsValue({
+    const values = {
       ...record,
       dob: record.dob ? dayjs(record.dob) : undefined,
       class_id: record.class_id?.id,
-    });
+    };
+    setEditingRecord(record);
+    setFormDraft(persistStudentFormValues(values));
+    form.setFieldsValue(values);
     setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditingRecord(null);
+    setFormDraft(null);
+    form.resetFields();
   };
 
   const normalizeValues = (values) => ({
@@ -624,7 +1005,7 @@ function StudentsPage() {
         await api.create('student', values);
       }
       message.success('Đã lưu sinh viên');
-      setModalOpen(false);
+      closeModal();
       loadRows();
     } catch (error) {
       message.error(error.message);
@@ -643,8 +1024,45 @@ function StudentsPage() {
     }
   };
 
-  const columns = [
-      { title: 'ID', dataIndex: 'id', width: 80, sorter: (a, b) => a.id - b.id },
+  const handleCopy = async (id) => {
+    try {
+      await api.copy('student', id);
+      message.success('Đã sao chép sinh viên');
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleBulkCopy = async () => {
+    try {
+      const copied = await api.copyMany('student', selectedRowKeys);
+      message.success(`Đã sao chép ${copied?.length || selectedRowKeys.length} sinh viên`);
+      setSelectedRowKeys([]);
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      await api.removeMany('student', selectedRowKeys);
+      message.success(`Đã xoá ${selectedRowKeys.length} sinh viên`);
+      setSelectedRowKeys([]);
+      loadRows();
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const exportParams = {
+    columnlist: ['id', ...exportFields],
+    idlist: selectedRowKeys,
+  };
+
+  const studentIdColumn = { title: 'ID', dataIndex: 'id', width: 80, sorter: (a, b) => a.id - b.id };
+  const visibleStudentColumns = [
       { title: 'Mã SV', dataIndex: 'code', width: 120 },
       { title: 'Họ tên', dataIndex: 'fullname', width: 180 },
       { title: 'Ngày sinh', dataIndex: 'dob', width: 130 },
@@ -656,7 +1074,7 @@ function StudentsPage() {
       },
       { title: 'Quê quán', dataIndex: 'homecity', width: 160 },
       { title: 'Địa chỉ', dataIndex: 'address', width: 180 },
-      { title: 'Sở thích', dataIndex: 'hobbies', width: 110 },
+    { title: 'Sở thích', dataIndex: 'hobbies', width: 220 },
       {
         title: 'Màu tóc',
         dataIndex: 'hair_color',
@@ -690,15 +1108,32 @@ function StudentsPage() {
       },
       { title: 'Mô tả', dataIndex: 'description', width: 220 },
       { title: 'Tên file ảnh', dataIndex: 'attachment_filename', width: 160 },
+  ].filter((column) => exportFields.includes(column.dataIndex));
+
+  const columns = [
+      studentIdColumn,
+      ...visibleStudentColumns,
       {
         title: 'Thao tác',
         fixed: 'right',
-        width: 150,
+        width: 240,
         render: (_, record) => (
           <Space>
-            <Button icon={<EditOutlined />} onClick={() => openEdit(record)} />
+            <Tooltip title="Xem chi tiết">
+              <Button icon={<EyeOutlined />} onClick={() => setDetailRecord(record)} />
+            </Tooltip>
+            <Popconfirm title="Sao chép sinh viên này?" okText="Sao chép" cancelText="Huỷ" onConfirm={() => handleCopy(record.id)}>
+              <Tooltip title="Sao chép">
+                <Button icon={<CopyOutlined />} />
+              </Tooltip>
+            </Popconfirm>
+            <Tooltip title="Sửa">
+              <Button icon={<EditOutlined />} onClick={() => openEdit(record)} />
+            </Tooltip>
             <Popconfirm title="Xoá sinh viên này?" okText="Xoá" cancelText="Huỷ" onConfirm={() => handleDelete(record.id)}>
-              <Button danger icon={<DeleteOutlined />} />
+              <Tooltip title="Xoá">
+                <Button danger icon={<DeleteOutlined />} />
+              </Tooltip>
             </Popconfirm>
           </Space>
         ),
@@ -719,15 +1154,36 @@ function StudentsPage() {
             className="table-search"
           />
           <Space wrap>
-            <Button icon={<ReloadOutlined />} onClick={() => loadRows(pagination.current, pagination.pageSize)}>
-              Tải lại
-            </Button>
-            <Button icon={<DownloadOutlined />} href={api.exportUrl('student')}>
+            <ExportFieldSelect fields={studentFilterFields} value={exportFields} onChange={setExportFields} />
+            <ImportButton resource="student" onImported={() => loadRows(1, pagination.pageSize, keyword)} />
+            <Button icon={<DownloadOutlined />} href={api.exportUrl('student', 'xlsx', exportParams)} disabled={!exportFields.length}>
               Excel
             </Button>
-            <Button icon={<DownloadOutlined />} href={api.exportUrl('student', 'pdf')}>
+            <Button icon={<DownloadOutlined />} href={api.exportUrl('student', 'pdf', exportParams)} disabled={!exportFields.length}>
               PDF
             </Button>
+            <Popconfirm
+              title={`Sao chép ${selectedRowKeys.length} sinh viên đã chọn?`}
+              okText="Sao chép"
+              cancelText="Huỷ"
+              disabled={!selectedRowKeys.length}
+              onConfirm={handleBulkCopy}
+            >
+              <Button icon={<CopyOutlined />} disabled={!selectedRowKeys.length}>
+                Sao chép chọn
+              </Button>
+            </Popconfirm>
+            <Popconfirm
+              title={`Xoá ${selectedRowKeys.length} sinh viên đã chọn?`}
+              okText="Xoá"
+              cancelText="Huỷ"
+              disabled={!selectedRowKeys.length}
+              onConfirm={handleBulkDelete}
+            >
+              <Button danger icon={<DeleteOutlined />} disabled={!selectedRowKeys.length}>
+                Xoá chọn
+              </Button>
+            </Popconfirm>
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
               Thêm sinh viên
             </Button>
@@ -742,6 +1198,11 @@ function StudentsPage() {
           dataSource={rows}
           scroll={{ x: 2500 }}
           pagination={pagination}
+          rowSelection={{
+            selectedRowKeys,
+            preserveSelectedRowKeys: true,
+            onChange: setSelectedRowKeys,
+          }}
           onChange={(nextPagination) => loadRows(nextPagination.current, nextPagination.pageSize)}
           columns={columns}
         />
@@ -755,18 +1216,30 @@ function StudentsPage() {
         cancelText="Huỷ"
         confirmLoading={saving}
         onOk={handleSave}
-        onCancel={() => setModalOpen(false)}
+        onCancel={closeModal}
         destroyOnClose
       >
-        <StudentForm form={form} onFinish={handleSave} classes={classes} />
+        <StudentForm
+          form={form}
+          onFinish={handleSave}
+          classes={classes}
+          onValuesChange={(_, values) => setFormDraft(persistStudentFormValues(values))}
+        />
       </Modal>
+
+      <DetailModal
+        title="Chi tiết sinh viên"
+        fields={studentExportFields}
+        record={detailRecord}
+        onClose={() => setDetailRecord(null)}
+      />
     </Space>
   );
 }
 
 function AdminLayout({ admin, onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [activeMenu, setActiveMenu] = useState('overview');
+  const [activeMenu, setActiveMenu] = useState(readStoredActiveMenu);
 
   const menuItems = [
     { key: 'overview', icon: <HomeOutlined />, label: 'Tổng quan' },
@@ -781,7 +1254,19 @@ function AdminLayout({ admin, onLogout }) {
           <div className="brand-mark">SC</div>
           {!collapsed && <span>Student Admin</span>}
         </div>
-        <Menu theme="dark" mode="inline" selectedKeys={[activeMenu]} items={menuItems} onClick={({ key }) => setActiveMenu(key)} />
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[activeMenu]}
+          items={menuItems}
+          onClick={({ key }) => {
+            if (key !== activeMenu) {
+              clearSelectedRowsOnLeave(activeMenu);
+            }
+            setActiveMenu(key);
+            window.localStorage.setItem(activeMenuStorageKey, key);
+          }}
+        />
       </Sider>
 
       <Layout>
@@ -793,7 +1278,6 @@ function AdminLayout({ admin, onLogout }) {
           />
           <div className="header-title">
             <Title level={4}>{pageTitles[activeMenu]}</Title>
-            <Text type="secondary">Dữ liệu lấy trực tiếp từ backend Odoo</Text>
           </div>
           <Space size={16}>
             <Badge dot>
@@ -820,17 +1304,18 @@ function AdminLayout({ admin, onLogout }) {
 }
 
 export default function App() {
-  const [admin, setAdmin] = useState(null);
-
-  useEffect(() => {
-    window.localStorage.removeItem('student_admin');
-  }, []);
+  const [admin, setAdmin] = useState(readStoredAdmin);
 
   const handleLogin = (nextAdmin) => {
+    window.localStorage.setItem(adminStorageKey, JSON.stringify(nextAdmin));
     setAdmin(nextAdmin);
   };
 
   const handleLogout = () => {
+    window.localStorage.removeItem(adminStorageKey);
+    window.localStorage.removeItem(activeMenuStorageKey);
+    window.localStorage.removeItem(classPageStateStorageKey);
+    window.localStorage.removeItem(studentPageStateStorageKey);
     setAdmin(null);
   };
 

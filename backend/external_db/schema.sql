@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS external_students (
     sex BOOLEAN,
     homecity VARCHAR(100),
     address VARCHAR(100),
-    hobbies INT,
+    hobbies VARCHAR(255),
     hair_color VARCHAR(7),
     email VARCHAR(256) NOT NULL UNIQUE,
     facebook VARCHAR(256),

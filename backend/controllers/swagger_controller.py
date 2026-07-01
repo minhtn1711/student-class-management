@@ -12,7 +12,7 @@ STUDENT_FIELDS = {
     "sex": {"type": "boolean", "example": True},
     "homecity": {"type": "string", "maxLength": 100, "example": "Ha Noi"},
     "address": {"type": "string", "maxLength": 100, "example": "Cau Giay, Ha Noi"},
-    "hobbies": {"type": "integer", "example": 1},
+    "hobbies": {"type": "string", "maxLength": 255, "example": "Doc sach, bong da"},
     "hair_color": {"type": "string", "maxLength": 7, "example": "#000000"},
     "email": {"type": "string", "maxLength": 256, "example": "nguyenvana@example.com"},
     "facebook": {"type": "string", "maxLength": 256, "example": "https://facebook.com/nguyenvana"},

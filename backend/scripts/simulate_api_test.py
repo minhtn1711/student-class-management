@@ -71,7 +71,7 @@ def main():
         "sex": True,
         "homecity": "Ha Noi",
         "address": "Cau Giay",
-        "hobbies": 1,
+        "hobbies": "Doc sach, bong da",
         "hair_color": "#000000",
         "email": f"simulation{suffix}@example.com",
         "facebook": f"https://facebook.com/simulation{suffix}",
